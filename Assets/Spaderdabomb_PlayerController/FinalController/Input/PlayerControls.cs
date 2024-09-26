@@ -46,6 +46,24 @@ namespace Spaderdabomb.PlayerController
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""ToggleSprint"",
+                    ""type"": ""Button"",
+                    ""id"": ""0fee7e28-c753-4ded-b5a1-4b556c05e6a6"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Jump"",
+                    ""type"": ""Button"",
+                    ""id"": ""c8136ef3-a7b0-4092-8c8f-2a1181ef2943"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -169,6 +187,28 @@ namespace Spaderdabomb.PlayerController
                     ""action"": ""Look"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c13a74cf-9c3f-4780-a8a7-8e8e6578dd50"",
+                    ""path"": ""<Keyboard>/leftShift"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ToggleSprint"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9964ffd2-c9b9-4a1e-a05f-c7e1ba63077c"",
+                    ""path"": ""<Keyboard>/space"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Jump"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -179,6 +219,8 @@ namespace Spaderdabomb.PlayerController
             m_PlayerLocomotion = asset.FindActionMap("PlayerLocomotion", throwIfNotFound: true);
             m_PlayerLocomotion_Movement = m_PlayerLocomotion.FindAction("Movement", throwIfNotFound: true);
             m_PlayerLocomotion_Look = m_PlayerLocomotion.FindAction("Look", throwIfNotFound: true);
+            m_PlayerLocomotion_ToggleSprint = m_PlayerLocomotion.FindAction("ToggleSprint", throwIfNotFound: true);
+            m_PlayerLocomotion_Jump = m_PlayerLocomotion.FindAction("Jump", throwIfNotFound: true);
         }
 
         public void Dispose()
@@ -242,12 +284,16 @@ namespace Spaderdabomb.PlayerController
         private List<IPlayerLocomotionActions> m_PlayerLocomotionActionsCallbackInterfaces = new List<IPlayerLocomotionActions>();
         private readonly InputAction m_PlayerLocomotion_Movement;
         private readonly InputAction m_PlayerLocomotion_Look;
+        private readonly InputAction m_PlayerLocomotion_ToggleSprint;
+        private readonly InputAction m_PlayerLocomotion_Jump;
         public struct PlayerLocomotionActions
         {
             private @PlayerControls m_Wrapper;
             public PlayerLocomotionActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
             public InputAction @Movement => m_Wrapper.m_PlayerLocomotion_Movement;
             public InputAction @Look => m_Wrapper.m_PlayerLocomotion_Look;
+            public InputAction @ToggleSprint => m_Wrapper.m_PlayerLocomotion_ToggleSprint;
+            public InputAction @Jump => m_Wrapper.m_PlayerLocomotion_Jump;
             public InputActionMap Get() { return m_Wrapper.m_PlayerLocomotion; }
             public void Enable() { Get().Enable(); }
             public void Disable() { Get().Disable(); }
@@ -263,6 +309,12 @@ namespace Spaderdabomb.PlayerController
                 @Look.started += instance.OnLook;
                 @Look.performed += instance.OnLook;
                 @Look.canceled += instance.OnLook;
+                @ToggleSprint.started += instance.OnToggleSprint;
+                @ToggleSprint.performed += instance.OnToggleSprint;
+                @ToggleSprint.canceled += instance.OnToggleSprint;
+                @Jump.started += instance.OnJump;
+                @Jump.performed += instance.OnJump;
+                @Jump.canceled += instance.OnJump;
             }
 
             private void UnregisterCallbacks(IPlayerLocomotionActions instance)
@@ -273,6 +325,12 @@ namespace Spaderdabomb.PlayerController
                 @Look.started -= instance.OnLook;
                 @Look.performed -= instance.OnLook;
                 @Look.canceled -= instance.OnLook;
+                @ToggleSprint.started -= instance.OnToggleSprint;
+                @ToggleSprint.performed -= instance.OnToggleSprint;
+                @ToggleSprint.canceled -= instance.OnToggleSprint;
+                @Jump.started -= instance.OnJump;
+                @Jump.performed -= instance.OnJump;
+                @Jump.canceled -= instance.OnJump;
             }
 
             public void RemoveCallbacks(IPlayerLocomotionActions instance)
@@ -294,6 +352,8 @@ namespace Spaderdabomb.PlayerController
         {
             void OnMovement(InputAction.CallbackContext context);
             void OnLook(InputAction.CallbackContext context);
+            void OnToggleSprint(InputAction.CallbackContext context);
+            void OnJump(InputAction.CallbackContext context);
         }
     }
 }
