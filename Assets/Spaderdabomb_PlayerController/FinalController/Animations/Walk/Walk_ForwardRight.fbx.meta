@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: c29e899bc714b254aa6d3dc609e4cf63
+guid: 4c35cb045c0fa2f439a5496cc3401ea3
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -16,8 +16,7 @@ ModelImporter:
     optimizeGameObjects: 0
     removeConstantScaleCurves: 1
     motionNodeName: 
-    rigImportErrors: "Copied Avatar Rig Configuration mis-match. Transform hierarchy
-      does not match:\n\tTransform 'pelvis' for human bone 'Hips' not found\n"
+    rigImportErrors: 
     rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
@@ -34,7 +33,7 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: A_Walk_BckStrafeBL_Masc
+      name: Walk_ForwardRight
       takeName: Take 001
       internalID: 1827226128182048838
       firstFrame: 1
@@ -713,7 +712,8 @@ ModelImporter:
     hasTranslationDoF: 0
     hasExtraRoot: 1
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: bfa42ba6d484e4e448024c9acf736ce9, type: 3}
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: bfa42ba6d484e4e448024c9acf736ce9,
+    type: 3}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 3
   humanoidOversampling: 1

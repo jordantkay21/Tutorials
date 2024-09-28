@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 4d75bab848fd72a48bc0705fe9590b2b
+guid: 8c25eb5d9e0f7994da357be57b189985
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -33,9 +33,9 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: A_Turn_Standing_90R_Masc
-      takeName: A_Turn_Standing_90R_Masc
-      internalID: 8036710987384964144
+      name: Turn_90_L
+      takeName: A_Turn_Standing_90L_Masc
+      internalID: -5982596486038227052
       firstFrame: 1
       lastFrame: 30
       wrapMode: 0
@@ -712,7 +712,8 @@ ModelImporter:
     hasTranslationDoF: 0
     hasExtraRoot: 1
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: bfa42ba6d484e4e448024c9acf736ce9, type: 3}
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: bfa42ba6d484e4e448024c9acf736ce9,
+    type: 3}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 3
   humanoidOversampling: 1

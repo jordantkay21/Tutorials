@@ -64,6 +64,15 @@ namespace Spaderdabomb.PlayerController
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""ToggleWalk"",
+                    ""type"": ""Button"",
+                    ""id"": ""91d98fe0-bdd9-40cd-85d4-425511b09431"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -209,6 +218,17 @@ namespace Spaderdabomb.PlayerController
                     ""action"": ""Jump"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b7fd01b1-0b15-4ede-bd03-82576db38e41"",
+                    ""path"": ""<Keyboard>/ctrl"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ToggleWalk"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -221,6 +241,7 @@ namespace Spaderdabomb.PlayerController
             m_PlayerLocomotion_Look = m_PlayerLocomotion.FindAction("Look", throwIfNotFound: true);
             m_PlayerLocomotion_ToggleSprint = m_PlayerLocomotion.FindAction("ToggleSprint", throwIfNotFound: true);
             m_PlayerLocomotion_Jump = m_PlayerLocomotion.FindAction("Jump", throwIfNotFound: true);
+            m_PlayerLocomotion_ToggleWalk = m_PlayerLocomotion.FindAction("ToggleWalk", throwIfNotFound: true);
         }
 
         public void Dispose()
@@ -286,6 +307,7 @@ namespace Spaderdabomb.PlayerController
         private readonly InputAction m_PlayerLocomotion_Look;
         private readonly InputAction m_PlayerLocomotion_ToggleSprint;
         private readonly InputAction m_PlayerLocomotion_Jump;
+        private readonly InputAction m_PlayerLocomotion_ToggleWalk;
         public struct PlayerLocomotionActions
         {
             private @PlayerControls m_Wrapper;
@@ -294,6 +316,7 @@ namespace Spaderdabomb.PlayerController
             public InputAction @Look => m_Wrapper.m_PlayerLocomotion_Look;
             public InputAction @ToggleSprint => m_Wrapper.m_PlayerLocomotion_ToggleSprint;
             public InputAction @Jump => m_Wrapper.m_PlayerLocomotion_Jump;
+            public InputAction @ToggleWalk => m_Wrapper.m_PlayerLocomotion_ToggleWalk;
             public InputActionMap Get() { return m_Wrapper.m_PlayerLocomotion; }
             public void Enable() { Get().Enable(); }
             public void Disable() { Get().Disable(); }
@@ -315,6 +338,9 @@ namespace Spaderdabomb.PlayerController
                 @Jump.started += instance.OnJump;
                 @Jump.performed += instance.OnJump;
                 @Jump.canceled += instance.OnJump;
+                @ToggleWalk.started += instance.OnToggleWalk;
+                @ToggleWalk.performed += instance.OnToggleWalk;
+                @ToggleWalk.canceled += instance.OnToggleWalk;
             }
 
             private void UnregisterCallbacks(IPlayerLocomotionActions instance)
@@ -331,6 +357,9 @@ namespace Spaderdabomb.PlayerController
                 @Jump.started -= instance.OnJump;
                 @Jump.performed -= instance.OnJump;
                 @Jump.canceled -= instance.OnJump;
+                @ToggleWalk.started -= instance.OnToggleWalk;
+                @ToggleWalk.performed -= instance.OnToggleWalk;
+                @ToggleWalk.canceled -= instance.OnToggleWalk;
             }
 
             public void RemoveCallbacks(IPlayerLocomotionActions instance)
@@ -354,6 +383,7 @@ namespace Spaderdabomb.PlayerController
             void OnLook(InputAction.CallbackContext context);
             void OnToggleSprint(InputAction.CallbackContext context);
             void OnJump(InputAction.CallbackContext context);
+            void OnToggleWalk(InputAction.CallbackContext context);
         }
     }
 }

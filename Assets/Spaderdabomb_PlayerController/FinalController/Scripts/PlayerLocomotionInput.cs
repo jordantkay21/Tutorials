@@ -14,6 +14,7 @@ namespace Spaderdabomb.PlayerController
 
         [Tooltip("Indicates whether that player is currently sprinting or not")]
         public bool SprintToggleOn { get; private set; }
+        public bool WalkToggleOn { get; private set; }
         public bool JumpPressed { get; private set; }
         public PlayerControls PlayerControls { get; private set; }
         public Vector2 MovementInput { get; private set; }
@@ -69,6 +70,14 @@ namespace Spaderdabomb.PlayerController
                 return;
 
             JumpPressed = true;
+        }
+
+        public void OnToggleWalk(InputAction.CallbackContext context)
+        {
+            if (!context.performed)
+                return;
+
+            WalkToggleOn = !WalkToggleOn;
         }
         #endregion
     }

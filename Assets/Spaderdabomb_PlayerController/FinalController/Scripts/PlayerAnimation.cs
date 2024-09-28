@@ -12,13 +12,17 @@ namespace Spaderdabomb.PlayerController
 
         private PlayerLocomotionInput _playerLocomotionInput;
         private PlayerState _playerState;
+        private PlayerController _playerController;
 
         private static int inputXHash = Animator.StringToHash("InputX");
         private static int inputYHash = Animator.StringToHash("InputY");
         private static int inputMagnitudeHash = Animator.StringToHash("InputMagnitude");
+        private static int isIdlingHash = Animator.StringToHash("IsIdling");
         private static int isGroundedHash = Animator.StringToHash("IsGrounded");
         private static int isJumpingHash = Animator.StringToHash("IsJumping");
         private static int isFallingHash = Animator.StringToHash("IsFalling");
+        private static int isRotatingToTarget = Animator.StringToHash("IsRotatingToTarget");
+        private static int turnAngleHash = Animator.StringToHash("TurnAngle");
 
         private Vector3 _currentBlendInput = Vector3.zero;
 
@@ -26,6 +30,7 @@ namespace Spaderdabomb.PlayerController
         {
             _playerLocomotionInput = GetComponent<PlayerLocomotionInput>();
             _playerState = GetComponent<PlayerState>();
+            _playerController = GetComponent<PlayerController>();
         }
 
         private void Update()
@@ -42,15 +47,19 @@ namespace Spaderdabomb.PlayerController
             bool isFalling = _playerState.CurrentPlayerMovementState == PlayerMovementState.Falling;
             bool isGrounded = _playerState.InGroundedState();
 
-            Vector2 inputTarget = isSprinting ? _playerLocomotionInput.MovementInput * 1.5f : _playerLocomotionInput.MovementInput;
+            Vector2 inputTarget = isSprinting ? _playerLocomotionInput.MovementInput * 1.5f :
+                                  isRunning ? _playerLocomotionInput.MovementInput * 1f : _playerLocomotionInput.MovementInput * 0.5f;
             _currentBlendInput = Vector3.Lerp(_currentBlendInput, inputTarget, locomotionBlendSpeed * Time.deltaTime);
 
             _animator.SetBool(isFallingHash, isFalling);
             _animator.SetBool(isJumpingHash, isJumping);
             _animator.SetBool(isGroundedHash, isGrounded);
+            _animator.SetBool(isIdlingHash, isIdling);
+            _animator.SetBool(isRotatingToTarget, _playerController.IsRotatingToTarget);
             _animator.SetFloat(inputXHash, _currentBlendInput.x);
             _animator.SetFloat(inputYHash, _currentBlendInput.y);
             _animator.SetFloat(inputMagnitudeHash, _currentBlendInput.magnitude);
+            _animator.SetFloat(turnAngleHash, _playerController.TurnAngle);
         }
     }
 }
