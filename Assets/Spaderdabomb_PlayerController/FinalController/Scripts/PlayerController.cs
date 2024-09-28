@@ -35,6 +35,7 @@ namespace Spaderdabomb.PlayerController
         public bool IsRotatingToTarget { get; private set; } = false;
 
         [Header("Base Movement")]
+        public float inAirAcceleration = 0.15f;
         public float walkAcceleration = 0.15f;
         public float walkSpeed = 3f;
         public float runAcceleration = 0.25f;
@@ -55,15 +56,24 @@ namespace Spaderdabomb.PlayerController
         public float lookSenseV = 0.1f;
         public float lookLimitV = 89f;
 
+        [Header("Environmental Details")]
+        [SerializeField] private LayerMask _groundLayers = default;
+        public float groundOffset;
+
         private PlayerLocomotionInput _playerLocomotionInput;
         private PlayerState _playerState;
 
         private Vector2 _cameraRotation = Vector2.zero;
         private Vector2 _playerTargetRotation = Vector2.zero;
 
-        private bool _isRotatingClockwise = false;
+        private bool _jumpedLastFrame = false;
         private float _rotatingToTargetTimer = 0f;
         private float _verticalVelocity = 0f;
+        private float _antiBump;
+        private float _stepOffset;
+
+        private PlayerMovementState _lastMovementState = PlayerMovementState.Falling;
+        
         #endregion
 
         #region Startup
@@ -71,6 +81,9 @@ namespace Spaderdabomb.PlayerController
         {
             _playerLocomotionInput = GetComponent<PlayerLocomotionInput>();
             _playerState = GetComponent<PlayerState>();
+
+            _antiBump = sprintSpeed;
+            _stepOffset = _characterController.stepOffset;
         }
         #endregion
 
@@ -87,6 +100,8 @@ namespace Spaderdabomb.PlayerController
 
         private void UpdateMovementState()
         {
+            _lastMovementState = _playerState.CurrentPlayerMovementState;
+
             bool canRun = CanRun();
             bool isMovementInput = _playerLocomotionInput.MovementInput != Vector2.zero;            //order
             bool isMovingLaterally = IsMovingLaterally();                                           //matter
@@ -94,20 +109,28 @@ namespace Spaderdabomb.PlayerController
             bool isWalking = (isMovingLaterally && !canRun) || _playerLocomotionInput.WalkToggleOn; //matters
             bool isGrounded = IsGrounded();
 
-            PlayerMovementState lateralState =  isWalking ? PlayerMovementState.Walking :
+            PlayerMovementState lateralState = isWalking ? PlayerMovementState.Walking :
                                                 isSprinting ? PlayerMovementState.Sprinting :
                                                 isMovingLaterally || isMovementInput ? PlayerMovementState.Running : PlayerMovementState.Idling;
-            
+
             _playerState.SetPlayerMovementState(lateralState);
 
             // Control Airborn State
-            if (!isGrounded && _characterController.velocity.y > 0f)
+            if (!isGrounded || _jumpedLastFrame && _characterController.velocity.y > 0f)
             {
                 _playerState.SetPlayerMovementState(PlayerMovementState.Jumping);
+                _jumpedLastFrame = false;
+                _characterController.stepOffset = 0f;
             }
-            else if (!isGrounded && _characterController.velocity.y <= 0f)
+            else if (!isGrounded || _jumpedLastFrame && _characterController.velocity.y <= 0f)
             {
                 _playerState.SetPlayerMovementState(PlayerMovementState.Falling);
+                _jumpedLastFrame = false;
+                _characterController.stepOffset = 0f;
+            }
+            else
+            {
+                _characterController.stepOffset = _stepOffset;
             }
         }
 
@@ -115,13 +138,22 @@ namespace Spaderdabomb.PlayerController
         {
             bool isGrounded = _playerState.InGroundedState();
 
-            if (isGrounded && _verticalVelocity < 0)
-                _verticalVelocity = 0f;
-
             _verticalVelocity -= gravity * Time.deltaTime;
 
+            if (isGrounded && _verticalVelocity < 0)
+                _verticalVelocity = -_antiBump;
+
+
             if (_playerLocomotionInput.JumpPressed && isGrounded)
+            {
                 _verticalVelocity += Mathf.Sqrt(jumpSpeed * 3 * gravity);
+                _jumpedLastFrame = true;
+            }
+
+            if (_playerState.IsStateGroundedState(_lastMovementState) && !isGrounded)
+            {
+                _verticalVelocity += _antiBump;
+            }
         }
 
         private void HandleLateralMovement()
@@ -132,9 +164,12 @@ namespace Spaderdabomb.PlayerController
             bool isGrounded = _playerState.InGroundedState();
 
             //State dependant acceleration & speed
-            float lateralAcceleration = isWalking ? walkAcceleration :
+            float lateralAcceleration = !isGrounded ? inAirAcceleration :
+                                        isWalking ? walkAcceleration :
                                         isSprinting ? sprintAcceleration : runAcceleration;
-            float clampLateralMagnitude = isWalking ? walkSpeed : 
+
+            float clampLateralMagnitude = !isGrounded ? sprintSpeed :
+                                          isWalking ? walkSpeed :
                                           isSprinting ? sprintSpeed : runSpeed;
 
             //Ensures the player moves in the direction relative to where the camera is facing
@@ -151,11 +186,32 @@ namespace Spaderdabomb.PlayerController
             Vector3 currentDrag = newVelocity.normalized * drag * Time.deltaTime; //Calculates the amount of drag to apply this frame
             newVelocity = (newVelocity.magnitude > drag * Time.deltaTime) ? newVelocity - currentDrag : Vector3.zero; // Reduces the velocity by the drag amount if the current speed is greater than the drag;
                                                                                                                       // otherwise, it sets the velocity to zero to prevent it from reversing direction due to over-subtraction
-            newVelocity = Vector3.ClampMagnitude(newVelocity, clampLateralMagnitude); //Clamps Velocity to Maximum Run Speed,
+            newVelocity = Vector3.ClampMagnitude(new Vector3(newVelocity.x, 0f, newVelocity.z), clampLateralMagnitude); //Clamps Velocity to Maximum Run Speed,
             newVelocity.y += _verticalVelocity;                                                      //preventing the player from exceeding the maximum allowed speed
+            newVelocity = !isGrounded ? HandleSteepSlopes(newVelocity) : newVelocity;
 
             //Move Character (Unity suggests only calling this once per tick)
             _characterController.Move(newVelocity * Time.deltaTime);
+        }
+
+        private bool IsValidSlopeAngle(out Vector3 normal)
+        {
+            normal = CharacterControllerUtils.GetNormalWithSphereCast(_characterController, _groundLayers);
+            float angle = Vector3.Angle(normal, Vector3.up);
+            bool validAngle = angle <= _characterController.slopeLimit;
+
+            
+            return validAngle;
+        }
+
+        private Vector3 HandleSteepSlopes(Vector3 velocity)
+        { 
+            if (!IsValidSlopeAngle(out Vector3 normal) && _verticalVelocity < 0f)
+            {
+                velocity = Vector3.ProjectOnPlane(velocity, normal);
+            }
+
+            return velocity;
         }
         #endregion
 
@@ -182,10 +238,10 @@ namespace Spaderdabomb.PlayerController
                 _cameraRotation.y = Mathf.Lerp(_cameraRotation.y, 0f, .1f);
                 virtualCamera.m_Lens.FieldOfView = Mathf.Lerp(virtualCamera.m_Lens.FieldOfView, 100, .1f);
             }
-            
-                                                                                                                                           
+
+
             _playerTargetRotation.x += transform.eulerAngles.x + lookSenseH * _playerLocomotionInput.LookInput.x;
- 
+
             float rotationTolerance = 90f;
             bool isIdling = _playerState.CurrentPlayerMovementState == PlayerMovementState.Idling;
             IsRotatingToTarget = _rotatingToTargetTimer > 0;
@@ -206,14 +262,14 @@ namespace Spaderdabomb.PlayerController
 
             //Apply's the calculated pitch and yaw to the camera, allowing it to look up and down as well as turn left and right
             _playerCamera.transform.rotation = Quaternion.Euler(_cameraRotation.y, _cameraRotation.x, 0f); //Rotation.y = (PITCH) controls the up & down look
-                                                                                                                   //Rotation.x = (YAW) controls the left and right look
+                                                                                                           //Rotation.x = (YAW) controls the left and right look
 
             Vector3 camForwardProjectedXZ = new Vector3(_playerCamera.transform.forward.x, 0f, _playerCamera.transform.forward.z).normalized;
 
             Vector3 crossProduct = Vector3.Cross(transform.forward, camForwardProjectedXZ);
 
             float sign = Mathf.Sign(Vector3.Dot(crossProduct, transform.up));
-            
+
             TurnAngle = sign * Vector3.Angle(transform.forward, camForwardProjectedXZ);
 
             Color parallelogramColor = (sign >= 0) ? PositiveCrossColor : NegativeCrossColor;
@@ -266,7 +322,24 @@ namespace Spaderdabomb.PlayerController
 
         private bool IsGrounded()
         {
-            return _characterController.isGrounded;
+            bool grounded = _playerState.InGroundedState() ? IsGroundedWhileGrounded() : IsGroundedWhileAirborne();
+
+            return grounded;
+        }
+
+        private Vector3 spherePos;
+        private bool IsGroundedWhileGrounded()
+        {
+            spherePos = new Vector3(transform.position.x, transform.position.y - groundOffset, transform.position.z);
+
+            bool grounded = Physics.CheckSphere(spherePos, _characterController.radius, _groundLayers, QueryTriggerInteraction.Ignore);
+
+            return grounded && IsValidSlopeAngle(out Vector3 normal);
+        }
+
+        private bool IsGroundedWhileAirborne()
+        {
+            return _characterController.isGrounded && IsValidSlopeAngle(out Vector3 normal);
         }
 
         private bool CanRun()
@@ -350,6 +423,7 @@ namespace Spaderdabomb.PlayerController
             
             mr.material.color = parallelogramColor;
         }
+
         #endregion
     }
 }
