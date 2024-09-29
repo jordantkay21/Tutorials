@@ -32,9 +32,9 @@ namespace Spaderdabomb.PlayerController
         public bool IsStateGroundedState(PlayerMovementState movementState)
         {
             return movementState == PlayerMovementState.Idling ||
-                 movementState == PlayerMovementState.Walking ||
-                 movementState == PlayerMovementState.Running ||
-                 movementState == PlayerMovementState.Sprinting;
+                   movementState == PlayerMovementState.Walking ||
+                   movementState == PlayerMovementState.Running ||
+                   movementState == PlayerMovementState.Sprinting;
         }
     }
 }

@@ -44,6 +44,7 @@ namespace Spaderdabomb.PlayerController
         public float sprintSpeed = 9;
         public float drag = 0.1f;
         public float gravity;
+        public float terminalVelocity = 50f;
         public float jumpSpeed;
         public float movementThreshold = 0.01f;
 
@@ -153,6 +154,11 @@ namespace Spaderdabomb.PlayerController
             if (_playerState.IsStateGroundedState(_lastMovementState) && !isGrounded)
             {
                 _verticalVelocity += _antiBump;
+            }
+
+            if(Mathf.Abs(_verticalVelocity) > Mathf.Abs(terminalVelocity))
+            {
+                _verticalVelocity = -1f * Mathf.Abs(terminalVelocity);
             }
         }
 
