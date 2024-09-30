@@ -55,7 +55,7 @@ namespace Spaderdabomb.PlayerController
             bool isRunBlendValue = isRunning || isJumping || isFalling;
 
             Vector2 inputTarget = isSprinting ? _playerLocomotionInput.MovementInput * _sprintMaxBlendValue :
-                                  isRunning ? _playerLocomotionInput.MovementInput * _runMaxBlendValue :
+                                  isRunBlendValue ? _playerLocomotionInput.MovementInput * _runMaxBlendValue :
                                                _playerLocomotionInput.MovementInput * _walkMaxBlendValue;
             _currentBlendInput = Vector3.Lerp(_currentBlendInput, inputTarget, locomotionBlendSpeed * Time.deltaTime);
 

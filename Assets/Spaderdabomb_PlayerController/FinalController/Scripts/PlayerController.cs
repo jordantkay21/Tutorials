@@ -117,13 +117,13 @@ namespace Spaderdabomb.PlayerController
             _playerState.SetPlayerMovementState(lateralState);
 
             // Control Airborn State
-            if (!isGrounded || _jumpedLastFrame && _characterController.velocity.y > 0f)
+            if ((!isGrounded || _jumpedLastFrame) && _characterController.velocity.y > 0f)
             {
                 _playerState.SetPlayerMovementState(PlayerMovementState.Jumping);
                 _jumpedLastFrame = false;
                 _characterController.stepOffset = 0f;
             }
-            else if (!isGrounded || _jumpedLastFrame && _characterController.velocity.y <= 0f)
+            else if ((!isGrounded || _jumpedLastFrame) && _characterController.velocity.y <= 0f)
             {
                 _playerState.SetPlayerMovementState(PlayerMovementState.Falling);
                 _jumpedLastFrame = false;
