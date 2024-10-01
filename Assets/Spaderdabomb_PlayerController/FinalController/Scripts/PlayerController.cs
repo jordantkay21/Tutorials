@@ -30,11 +30,13 @@ namespace Spaderdabomb.PlayerController
         [Header("Components")]
         [SerializeField] CharacterController _characterController;
         [SerializeField] Camera _playerCamera;
+        [SerializeField] Animator _animator;
 
         public float TurnAngle { get; private set; } = 0f;
         public bool IsRotatingToTarget { get; private set; } = false;
 
         [Header("Base Movement")]
+        public float movementThreshold = 0.01f;
         public float inAirAcceleration = 0.15f;
         public float walkAcceleration = 0.15f;
         public float walkSpeed = 3f;
@@ -43,10 +45,15 @@ namespace Spaderdabomb.PlayerController
         public float sprintAcceleration = 0.5f;
         public float sprintSpeed = 9;
         public float drag = 0.1f;
+
+        [Header("Jump Settings")]
+        public float jumpSpeed;
+        public float jumpCooldown = 0.5f; //Cooldown time in seconds between jumps
+        public float jumpTimer = 0f; //Tracks the remaining cooldown time
+
+        [Header("Fall Settings")]
         public float gravity;
         public float terminalVelocity = 50f;
-        public float jumpSpeed;
-        public float movementThreshold = 0.01f;
 
         [Header("Animation")]
         public float playerModelRotationSpeed = 10f;
@@ -67,11 +74,13 @@ namespace Spaderdabomb.PlayerController
         private Vector2 _cameraRotation = Vector2.zero;
         private Vector2 _playerTargetRotation = Vector2.zero;
 
-        private bool _jumpedLastFrame = false;
+        private bool _jumpedLastFrame;
+        [SerializeField] private bool _canMove = true;
         private float _rotatingToTargetTimer = 0f;
         private float _verticalVelocity = 0f;
         private float _antiBump;
         private float _stepOffset;
+
 
         private PlayerMovementState _lastMovementState = PlayerMovementState.Falling;
         
@@ -94,9 +103,19 @@ namespace Spaderdabomb.PlayerController
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
 
+            if (jumpTimer > 0)
+            {
+                jumpTimer -= Time.deltaTime;
+            }
+
             UpdateMovementState();
             HandleVerticalMovement();
             HandleLateralMovement();
+
+            if (PlayerAnimation.Instance.CheckCurrentAnimState("Land State"))
+                _canMove = false;
+            else
+                _canMove = true;
         }
 
         private void UpdateMovementState()
@@ -145,10 +164,13 @@ namespace Spaderdabomb.PlayerController
                 _verticalVelocity = -_antiBump;
 
 
-            if (_playerLocomotionInput.JumpPressed && isGrounded)
+            if (_playerLocomotionInput.JumpPressed && isGrounded && _canMove && jumpTimer <= 0f)
             {
                 _verticalVelocity += Mathf.Sqrt(jumpSpeed * 3 * gravity);
                 _jumpedLastFrame = true;
+
+                //Reset the jump cooldown timer
+                jumpTimer = jumpCooldown;
             }
 
             if (_playerState.IsStateGroundedState(_lastMovementState) && !isGrounded)
@@ -197,7 +219,8 @@ namespace Spaderdabomb.PlayerController
             newVelocity = !isGrounded ? HandleSteepSlopes(newVelocity) : newVelocity;
 
             //Move Character (Unity suggests only calling this once per tick)
-            _characterController.Move(newVelocity * Time.deltaTime);
+            if (_canMove)
+                _characterController.Move(newVelocity * Time.deltaTime);
         }
 
         private bool IsValidSlopeAngle(out Vector3 normal)

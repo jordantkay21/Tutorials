@@ -7,6 +7,7 @@ namespace Spaderdabomb.PlayerController
 {
     public class PlayerAnimation : MonoBehaviour
     {
+        public static PlayerAnimation Instance;
         [SerializeField] private Animator _animator;
         [SerializeField] private float locomotionBlendSpeed = 0.02f;
 
@@ -33,6 +34,9 @@ namespace Spaderdabomb.PlayerController
 
         private void Awake()
         {
+            if (Instance == null || Instance != this)
+                Instance = this;
+
             _playerLocomotionInput = GetComponent<PlayerLocomotionInput>();
             _playerState = GetComponent<PlayerState>();
             _playerController = GetComponent<PlayerController>();
@@ -41,6 +45,8 @@ namespace Spaderdabomb.PlayerController
         private void Update()
         {
             UpdateAnimationState();
+
+
         }
 
         private void UpdateAnimationState()
@@ -68,6 +74,20 @@ namespace Spaderdabomb.PlayerController
             _animator.SetFloat(inputYHash, _currentBlendInput.y);
             _animator.SetFloat(inputMagnitudeHash, _currentBlendInput.magnitude);
             _animator.SetFloat(turnAngleHash, _playerController.TurnAngle);
+        }
+
+        public bool CheckCurrentAnimState(string stateName)
+        {
+            AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+            bool stateMatch;
+
+            if (stateInfo.IsName(stateName))
+                stateMatch = true;
+            else
+                stateMatch = false;
+            
+            return stateMatch;
+
         }
     }
 }

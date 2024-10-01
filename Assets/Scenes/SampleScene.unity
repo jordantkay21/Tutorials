@@ -25628,6 +25628,16 @@ PrefabInstance:
       objectReference: {fileID: 1105089684}
     - target: {fileID: 8400124238389439448, guid: 74d10c9bd48eb8642b9601fb435ef645,
         type: 3}
+      propertyPath: _animator
+      value: 
+      objectReference: {fileID: 1499214046}
+    - target: {fileID: 8400124238389439448, guid: 74d10c9bd48eb8642b9601fb435ef645,
+        type: 3}
+      propertyPath: jumpCooldown
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8400124238389439448, guid: 74d10c9bd48eb8642b9601fb435ef645,
+        type: 3}
       propertyPath: CharacterUpViz
       value: 
       objectReference: {fileID: 1648958410}
@@ -30937,6 +30947,12 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!95 &1499214046 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 1605575587561686370, guid: 74d10c9bd48eb8642b9601fb435ef645,
+    type: 3}
+  m_PrefabInstance: {fileID: 1115206597}
+  m_PrefabAsset: {fileID: 0}
 --- !u!43 &1573961314
 Mesh:
   m_ObjectHideFlags: 0
