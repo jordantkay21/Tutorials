@@ -54,6 +54,7 @@ namespace Spaderdabomb.PlayerController
         [Header("Fall Settings")]
         public float gravity;
         public float terminalVelocity = 50f;
+        public float fallDuration;
 
         [Header("Animation")]
         public float playerModelRotationSpeed = 10f;
@@ -75,11 +76,10 @@ namespace Spaderdabomb.PlayerController
         private Vector2 _playerTargetRotation = Vector2.zero;
 
         private bool _jumpedLastFrame;
-        [SerializeField] private bool _canMove = true;
         private float _rotatingToTargetTimer = 0f;
         private float _verticalVelocity = 0f;
-        private float _antiBump;
-        private float _stepOffset;
+        [SerializeField] private float _antiBump;
+        [SerializeField] private float _stepOffset;
 
 
         private PlayerMovementState _lastMovementState = PlayerMovementState.Falling;
@@ -112,10 +112,12 @@ namespace Spaderdabomb.PlayerController
             HandleVerticalMovement();
             HandleLateralMovement();
 
-            if (PlayerAnimation.Instance.CheckCurrentAnimState("Land State"))
-                _canMove = false;
+
+            if (PlayerAnimation.Instance.CheckCurrentAnimState("Fall Blend"))
+                fallDuration += Time.deltaTime;
             else
-                _canMove = true;
+                fallDuration = 0;
+
         }
 
         private void UpdateMovementState()
@@ -164,7 +166,7 @@ namespace Spaderdabomb.PlayerController
                 _verticalVelocity = -_antiBump;
 
 
-            if (_playerLocomotionInput.JumpPressed && isGrounded && _canMove && jumpTimer <= 0f)
+            if (_playerLocomotionInput.JumpPressed && isGrounded && jumpTimer <= 0f)
             {
                 _verticalVelocity += Mathf.Sqrt(jumpSpeed * 3 * gravity);
                 _jumpedLastFrame = true;
@@ -219,8 +221,7 @@ namespace Spaderdabomb.PlayerController
             newVelocity = !isGrounded ? HandleSteepSlopes(newVelocity) : newVelocity;
 
             //Move Character (Unity suggests only calling this once per tick)
-            if (_canMove)
-                _characterController.Move(newVelocity * Time.deltaTime);
+             _characterController.Move(newVelocity * Time.deltaTime);
         }
 
         private bool IsValidSlopeAngle(out Vector3 normal)
@@ -363,7 +364,27 @@ namespace Spaderdabomb.PlayerController
 
             bool grounded = Physics.CheckSphere(spherePos, _characterController.radius, _groundLayers, QueryTriggerInteraction.Ignore);
 
-            return grounded && IsValidSlopeAngle(out Vector3 normal);
+            if (grounded)
+            {
+                if (IsValidSlopeAngle(out Vector3 normal))
+                {
+                    //Debug.Log($"Valid Slope = true | Angle ={Vector3.Angle(normal, Vector3.up)}");
+                    return true;
+                }
+                else
+                {
+                    //check if within step offset (e.g. stairs)
+                    //Debug.Log($"Valid Slope = false | Angle ={Vector3.Angle(normal, Vector3.up)}");
+                    float maxStepHeight = _characterController.stepOffset + _characterController.skinWidth;
+                    Debug.Log(maxStepHeight);
+                    Debug.DrawRay(transform.position, Vector3.down);
+                    if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, maxStepHeight, _groundLayers, QueryTriggerInteraction.Ignore))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private bool IsGroundedWhileAirborne()
@@ -453,6 +474,12 @@ namespace Spaderdabomb.PlayerController
             mr.material.color = parallelogramColor;
         }
 
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = IsGroundedWhileGrounded() ? Color.green : Color.red;
+
+            Gizmos.DrawSphere(spherePos, _characterController.radius);
+        }
         #endregion
     }
 }

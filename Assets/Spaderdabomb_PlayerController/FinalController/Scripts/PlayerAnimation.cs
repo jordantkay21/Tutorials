@@ -24,6 +24,7 @@ namespace Spaderdabomb.PlayerController
         private static int isFallingHash = Animator.StringToHash("IsFalling");
         private static int isRotatingToTarget = Animator.StringToHash("IsRotatingToTarget");
         private static int turnAngleHash = Animator.StringToHash("TurnAngle");
+        private static int fallSpeed = Animator.StringToHash("FallSpeed");
 
         private Vector3 _currentBlendInput = Vector3.zero;
 
@@ -65,8 +66,8 @@ namespace Spaderdabomb.PlayerController
                                                _playerLocomotionInput.MovementInput * _walkMaxBlendValue;
             _currentBlendInput = Vector3.Lerp(_currentBlendInput, inputTarget, locomotionBlendSpeed * Time.deltaTime);
 
-            _animator.SetBool(isFallingHash, isFalling);
             _animator.SetBool(isJumpingHash, isJumping);
+            _animator.SetBool(isFallingHash, isFalling);
             _animator.SetBool(isGroundedHash, isGrounded);
             _animator.SetBool(isIdlingHash, isIdling);
             _animator.SetBool(isRotatingToTarget, _playerController.IsRotatingToTarget);
@@ -74,6 +75,7 @@ namespace Spaderdabomb.PlayerController
             _animator.SetFloat(inputYHash, _currentBlendInput.y);
             _animator.SetFloat(inputMagnitudeHash, _currentBlendInput.magnitude);
             _animator.SetFloat(turnAngleHash, _playerController.TurnAngle);
+            _animator.SetFloat(fallSpeed, _playerController.fallDuration);
         }
 
         public bool CheckCurrentAnimState(string stateName)
