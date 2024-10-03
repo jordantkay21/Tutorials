@@ -10,7 +10,7 @@ namespace Spaderdabomb.PlayerController
     {
         #region Debug Variables
 
-        [Header("Visual Cross Product")]
+        [Header("Debug Visual Cross Product")]
         public Transform CharacterForwardViz;
         public Transform CameraForwardViz;
         public Transform CrossProductViz;
@@ -23,6 +23,13 @@ namespace Spaderdabomb.PlayerController
 
         public Color PositiveCrossColor;
         public Color NegativeCrossColor;
+
+        [Header("Debug Ground Detection")]
+        public GameObject FrontHitViz;
+        public GameObject CenterHitViz;
+        public GameObject RearHitViz;
+        public GameObject MissingVectorViz;
+        public GameObject StepCheckViz;
 
         #endregion
 
@@ -66,8 +73,18 @@ namespace Spaderdabomb.PlayerController
         public float lookLimitV = 89f;
 
         [Header("Environmental Details")]
-        [SerializeField] private LayerMask _groundLayers = default;
+        public LayerMask _groundLayers = default;
         public float groundOffset;
+        public float raycastDistance;
+        public Transform frontRayPos;
+        public Transform rearRayPos;
+        public Transform centerRayPos;
+        public Transform StepCheckPos;
+
+        [Header("Edge Handling")]
+        public float edgeBufferTime = 1.0f; //Time to wait at the edge
+        public float edgeTime = 0f;
+        private bool _isEdgeBufferActive = false;
 
         private PlayerLocomotionInput _playerLocomotionInput;
         private PlayerState _playerState;
@@ -75,11 +92,14 @@ namespace Spaderdabomb.PlayerController
         private Vector2 _cameraRotation = Vector2.zero;
         private Vector2 _playerTargetRotation = Vector2.zero;
 
+        [Header("Debug Values")]
         private bool _jumpedLastFrame;
         private float _rotatingToTargetTimer = 0f;
         private float _verticalVelocity = 0f;
-        [SerializeField] private float _antiBump;
-        [SerializeField] private float _stepOffset;
+        [SerializeField]  float _antiBump;
+        [SerializeField]  float _stepOffset;
+        [SerializeField] bool isOnEdge;
+        [SerializeField] bool isSteepEdge;
 
 
         private PlayerMovementState _lastMovementState = PlayerMovementState.Falling;
@@ -108,6 +128,8 @@ namespace Spaderdabomb.PlayerController
                 jumpTimer -= Time.deltaTime;
             }
 
+            EdgeDetection();
+
             UpdateMovementState();
             HandleVerticalMovement();
             HandleLateralMovement();
@@ -130,6 +152,12 @@ namespace Spaderdabomb.PlayerController
             bool isSprinting = _playerLocomotionInput.SprintToggleOn && isMovingLaterally;          //order
             bool isWalking = (isMovingLaterally && !canRun) || _playerLocomotionInput.WalkToggleOn; //matters
             bool isGrounded = IsGrounded();
+
+            if (isOnEdge)
+            {
+                Debug.Log("Edge Detected");
+            }
+
 
             PlayerMovementState lateralState = isWalking ? PlayerMovementState.Walking :
                                                 isSprinting ? PlayerMovementState.Sprinting :
@@ -374,9 +402,7 @@ namespace Spaderdabomb.PlayerController
                 else
                 {
                     //check if within step offset (e.g. stairs)
-                    //Debug.Log($"Valid Slope = false | Angle ={Vector3.Angle(normal, Vector3.up)}");
                     float maxStepHeight = _characterController.stepOffset + _characterController.skinWidth;
-                    Debug.Log(maxStepHeight);
                     Debug.DrawRay(transform.position, Vector3.down);
                     if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, maxStepHeight, _groundLayers, QueryTriggerInteraction.Ignore))
                     {
@@ -390,6 +416,77 @@ namespace Spaderdabomb.PlayerController
         private bool IsGroundedWhileAirborne()
         {
             return _characterController.isGrounded && IsValidSlopeAngle(out Vector3 normal);
+        }
+
+
+        private void EdgeDetection()
+        {
+            float totalRaycastDistance = groundOffset + 0.8f;
+
+            RaycastHit frontHit;
+            RaycastHit centerHit;
+            RaycastHit stepHit;
+
+            bool frontGrounded = Physics.Raycast(frontRayPos.position, Vector3.down, out frontHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
+            bool centerGrounded = Physics.Raycast(centerRayPos.position, Vector3.down, out centerHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
+            bool isEdgeAStep = Physics.Raycast(StepCheckPos.position, Vector3.down, out stepHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
+
+            // Visualize the raycasts
+            Debug.DrawRay(frontRayPos.position, Vector3.down * totalRaycastDistance, frontGrounded ? Color.green : Color.red);
+            Debug.DrawRay(centerRayPos.position, Vector3.down * totalRaycastDistance, centerGrounded ? Color.green : Color.red);
+            Debug.DrawRay(StepCheckPos.position, Vector3.down * totalRaycastDistance, isEdgeAStep ? Color.green : Color.red);
+
+
+            Vector3 frontPoint = frontHit.point;
+            Vector3 centerPoint = centerHit.point;
+            Vector3 stepCheckPoint = stepHit.point;
+            Vector3 missingPoint;
+
+
+            bool frontHitIsPositive = frontPoint.y > centerPoint.y;
+
+            if (frontHitIsPositive)
+            {
+                missingPoint = new Vector3(frontPoint.x, centerPoint.y, frontPoint.z);
+            }
+            else
+            {
+                missingPoint = new Vector3(centerPoint.x, frontPoint.y, centerPoint.z);
+            }
+
+            FrontHitViz.transform.position = frontPoint;
+            CenterHitViz.transform.position = centerPoint;
+            MissingVectorViz.transform.position = missingPoint;
+            StepCheckViz.transform.position = stepCheckPoint;
+
+
+            Debug.DrawLine(missingPoint, centerPoint, Color.yellow);
+            Debug.DrawLine(missingPoint, frontPoint, Color.yellow);
+
+            Vector3 frontVector = frontPoint - centerPoint;
+            Vector3 missingVector = missingPoint - centerPoint;
+
+            float slopeAngle = Vector3.Angle(frontVector, missingVector);
+
+            float HeightCheckThreshold = 0.1f;
+
+            float frontHeightDifference = Mathf.Abs(frontPoint.y - centerPoint.y);
+            bool frontCenterMatch = frontHeightDifference <= HeightCheckThreshold;
+            
+            float stepCheckHeightDifference = Mathf.Abs(frontPoint.y - stepCheckPoint.y);
+            bool isStep = stepCheckHeightDifference <= HeightCheckThreshold;
+
+            if (!frontCenterMatch)
+            {
+
+                isOnEdge = !isStep && slopeAngle > _characterController.slopeLimit;
+            }
+            else
+            {
+                isOnEdge = false;
+            }
+
+            Debug.Log($"isOnEdge = {isOnEdge} | stepCheckHeightDifference = {stepCheckHeightDifference} | Detected edge is step: {isStep} | Front Point is +/- : {frontHitIsPositive} | Slope Angle Along Forward Direction: {slopeAngle} degrees");
         }
 
         private bool CanRun()
@@ -478,7 +575,7 @@ namespace Spaderdabomb.PlayerController
         {
             Gizmos.color = IsGroundedWhileGrounded() ? Color.green : Color.red;
 
-            Gizmos.DrawSphere(spherePos, _characterController.radius);
+            //Gizmos.DrawSphere(spherePos, _characterController.radius);
         }
         #endregion
     }
