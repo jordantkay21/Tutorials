@@ -13,6 +13,7 @@ namespace Spaderdabomb.PlayerController
         Jumping = 4,
         Falling = 5,
         Strafing = 6,
+        EdgeBalancing = 7
     }
 
     public class PlayerState : MonoBehaviour

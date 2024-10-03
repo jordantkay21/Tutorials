@@ -41,6 +41,9 @@ namespace Spaderdabomb.PlayerController
 
         public float TurnAngle { get; private set; } = 0f;
         public bool IsRotatingToTarget { get; private set; } = false;
+        [Header("Expression Objects")]
+        public bool showEdgeDetection;
+        public GameObject exclamationIcon;
 
         [Header("Base Movement")]
         public float movementThreshold = 0.01f;
@@ -81,10 +84,6 @@ namespace Spaderdabomb.PlayerController
         public Transform centerRayPos;
         public Transform StepCheckPos;
 
-        [Header("Edge Handling")]
-        public float edgeBufferTime = 1.0f; //Time to wait at the edge
-        public float edgeTime = 0f;
-        private bool _isEdgeBufferActive = false;
 
         private PlayerLocomotionInput _playerLocomotionInput;
         private PlayerState _playerState;
@@ -141,10 +140,83 @@ namespace Spaderdabomb.PlayerController
                 fallDuration = 0;
 
         }
+        private void EdgeDetection()
+        {
+            float totalRaycastDistance = groundOffset + 0.8f;
+
+            RaycastHit frontHit;
+            RaycastHit centerHit;
+            RaycastHit stepHit;
+
+            bool frontGrounded = Physics.Raycast(frontRayPos.position, Vector3.down, out frontHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
+            bool centerGrounded = Physics.Raycast(centerRayPos.position, Vector3.down, out centerHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
+            bool isEdgeAStep = Physics.Raycast(StepCheckPos.position, Vector3.down, out stepHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
+
+            // Visualize the raycasts
+            Debug.DrawRay(frontRayPos.position, Vector3.down * totalRaycastDistance, frontGrounded ? Color.green : Color.red);
+            Debug.DrawRay(centerRayPos.position, Vector3.down * totalRaycastDistance, centerGrounded ? Color.green : Color.red);
+            Debug.DrawRay(StepCheckPos.position, Vector3.down * totalRaycastDistance, isEdgeAStep ? Color.green : Color.red);
+
+
+            Vector3 frontPoint = frontHit.point;
+            Vector3 centerPoint = centerHit.point;
+            Vector3 stepCheckPoint = stepHit.point;
+            Vector3 missingPoint = new Vector3(frontPoint.x, centerPoint.y, frontPoint.z);
+
+            FrontHitViz.transform.position = frontPoint;
+            CenterHitViz.transform.position = centerPoint;
+            MissingVectorViz.transform.position = missingPoint;
+            StepCheckViz.transform.position = stepCheckPoint;
+
+
+            Debug.DrawLine(missingPoint, centerPoint, Color.yellow);
+            Debug.DrawLine(missingPoint, frontPoint, Color.yellow);
+
+            Vector3 frontVector = frontPoint - centerPoint;
+            Vector3 missingVector = missingPoint - centerPoint;
+
+            float slopeAngle = Vector3.Angle(frontVector, missingVector);
+
+            float HeightCheckThreshold = 0.1f;
+
+            float frontHeightDifference = Mathf.Abs(frontPoint.y - centerPoint.y);
+            bool frontCenterMatch = frontHeightDifference <= HeightCheckThreshold;
+            
+            float stepCheckHeightDifference = Mathf.Abs(frontPoint.y - stepCheckPoint.y);
+            bool isStep = stepCheckHeightDifference <= HeightCheckThreshold;
+
+            if (!centerGrounded)
+            {
+                isOnEdge = false;
+            }
+            else
+            {
+                if (!frontGrounded)
+                    isOnEdge = true;
+                else
+                {
+                    if (!frontCenterMatch)
+                        isOnEdge = !isStep && slopeAngle > _characterController.slopeLimit;
+                    else
+                        isOnEdge = false;
+                }
+            }
+
+            if(showEdgeDetection)
+            {
+                exclamationIcon.SetActive(isOnEdge);
+            }
+        }
 
         private void UpdateMovementState()
         {
             _lastMovementState = _playerState.CurrentPlayerMovementState;
+
+            // If currently in EdgeBalancing state, don't change state
+            if (_playerState.CurrentPlayerMovementState == PlayerMovementState.EdgeBalancing)
+            {
+                return;
+            }
 
             bool canRun = CanRun();
             bool isMovementInput = _playerLocomotionInput.MovementInput != Vector2.zero;            //order
@@ -152,12 +224,6 @@ namespace Spaderdabomb.PlayerController
             bool isSprinting = _playerLocomotionInput.SprintToggleOn && isMovingLaterally;          //order
             bool isWalking = (isMovingLaterally && !canRun) || _playerLocomotionInput.WalkToggleOn; //matters
             bool isGrounded = IsGrounded();
-
-            if (isOnEdge)
-            {
-                Debug.Log("Edge Detected");
-            }
-
 
             PlayerMovementState lateralState = isWalking ? PlayerMovementState.Walking :
                                                 isSprinting ? PlayerMovementState.Sprinting :
@@ -236,6 +302,7 @@ namespace Spaderdabomb.PlayerController
             Vector3 cameraRightXZ = new Vector3(_playerCamera.transform.right.x, 0f, _playerCamera.transform.right.z).normalized; //The right direction of the camera on the XZ-Plane
             Vector3 movementDirection = cameraRightXZ * _playerLocomotionInput.MovementInput.x + cameraForwardXZ * _playerLocomotionInput.MovementInput.y; //Combines the player's input with the camera's orientation to determine the actual movement direction
 
+
             //Simulate acceleration, making the player's movement feel more natural and less abrupt
             Vector3 movementDelta = movementDirection * lateralAcceleration * Time.deltaTime; //Change in velocity for this frame, scaled by 'runAcceleration' and 'Time.deltaTime' to make it frame-rate independent
             Vector3 newVelocity = _characterController.velocity + movementDelta; //Updates the player's velocity by adding the 'movementDelta' to the current velocity
@@ -248,10 +315,13 @@ namespace Spaderdabomb.PlayerController
             newVelocity.y += _verticalVelocity;                                                      //preventing the player from exceeding the maximum allowed speed
             newVelocity = !isGrounded ? HandleSteepSlopes(newVelocity) : newVelocity;
 
+
+
             //Move Character (Unity suggests only calling this once per tick)
-             _characterController.Move(newVelocity * Time.deltaTime);
+            _characterController.Move(newVelocity * Time.deltaTime);
         }
 
+        #region Helper Methods
         private bool IsValidSlopeAngle(out Vector3 normal)
         {
             normal = CharacterControllerUtils.GetNormalWithSphereCast(_characterController, _groundLayers);
@@ -271,6 +341,7 @@ namespace Spaderdabomb.PlayerController
 
             return velocity;
         }
+        #endregion
         #endregion
 
         #region Late Update Logic
@@ -419,75 +490,8 @@ namespace Spaderdabomb.PlayerController
         }
 
 
-        private void EdgeDetection()
-        {
-            float totalRaycastDistance = groundOffset + 0.8f;
 
-            RaycastHit frontHit;
-            RaycastHit centerHit;
-            RaycastHit stepHit;
-
-            bool frontGrounded = Physics.Raycast(frontRayPos.position, Vector3.down, out frontHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
-            bool centerGrounded = Physics.Raycast(centerRayPos.position, Vector3.down, out centerHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
-            bool isEdgeAStep = Physics.Raycast(StepCheckPos.position, Vector3.down, out stepHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
-
-            // Visualize the raycasts
-            Debug.DrawRay(frontRayPos.position, Vector3.down * totalRaycastDistance, frontGrounded ? Color.green : Color.red);
-            Debug.DrawRay(centerRayPos.position, Vector3.down * totalRaycastDistance, centerGrounded ? Color.green : Color.red);
-            Debug.DrawRay(StepCheckPos.position, Vector3.down * totalRaycastDistance, isEdgeAStep ? Color.green : Color.red);
-
-
-            Vector3 frontPoint = frontHit.point;
-            Vector3 centerPoint = centerHit.point;
-            Vector3 stepCheckPoint = stepHit.point;
-            Vector3 missingPoint;
-
-
-            bool frontHitIsPositive = frontPoint.y > centerPoint.y;
-
-            if (frontHitIsPositive)
-            {
-                missingPoint = new Vector3(frontPoint.x, centerPoint.y, frontPoint.z);
-            }
-            else
-            {
-                missingPoint = new Vector3(centerPoint.x, frontPoint.y, centerPoint.z);
-            }
-
-            FrontHitViz.transform.position = frontPoint;
-            CenterHitViz.transform.position = centerPoint;
-            MissingVectorViz.transform.position = missingPoint;
-            StepCheckViz.transform.position = stepCheckPoint;
-
-
-            Debug.DrawLine(missingPoint, centerPoint, Color.yellow);
-            Debug.DrawLine(missingPoint, frontPoint, Color.yellow);
-
-            Vector3 frontVector = frontPoint - centerPoint;
-            Vector3 missingVector = missingPoint - centerPoint;
-
-            float slopeAngle = Vector3.Angle(frontVector, missingVector);
-
-            float HeightCheckThreshold = 0.1f;
-
-            float frontHeightDifference = Mathf.Abs(frontPoint.y - centerPoint.y);
-            bool frontCenterMatch = frontHeightDifference <= HeightCheckThreshold;
-            
-            float stepCheckHeightDifference = Mathf.Abs(frontPoint.y - stepCheckPoint.y);
-            bool isStep = stepCheckHeightDifference <= HeightCheckThreshold;
-
-            if (!frontCenterMatch)
-            {
-
-                isOnEdge = !isStep && slopeAngle > _characterController.slopeLimit;
-            }
-            else
-            {
-                isOnEdge = false;
-            }
-
-            Debug.Log($"isOnEdge = {isOnEdge} | stepCheckHeightDifference = {stepCheckHeightDifference} | Detected edge is step: {isStep} | Front Point is +/- : {frontHitIsPositive} | Slope Angle Along Forward Direction: {slopeAngle} degrees");
-        }
+        
 
         private bool CanRun()
         { 
