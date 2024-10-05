@@ -10,24 +10,9 @@ namespace Spaderdabomb.PlayerController
     {
         #region Debug Variables
 
-        [Header("Debug Visual Cross Product")]
-        public Transform CharacterForwardViz;
-        public Transform CameraForwardViz;
-        public Transform CrossProductViz;
-        public Transform CharacterUpViz;
-        public Transform NegCharacterUpViz;
-        public Transform OriginViz;
-        public GameObject PlayerCam_ParallelogramViz;
-        public GameObject CrossPlayer_ParallelogramViz;
-        public GameObject CrossCam_ParallelogramViz;
-
-        public Color PositiveCrossColor;
-        public Color NegativeCrossColor;
-
         [Header("Debug Ground Detection")]
         public GameObject FrontHitViz;
         public GameObject CenterHitViz;
-        public GameObject RearHitViz;
         public GameObject MissingVectorViz;
         public GameObject StepCheckViz;
 
@@ -152,25 +137,41 @@ namespace Spaderdabomb.PlayerController
             bool centerGrounded = Physics.Raycast(centerRayPos.position, Vector3.down, out centerHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
             bool isEdgeAStep = Physics.Raycast(StepCheckPos.position, Vector3.down, out stepHit, totalRaycastDistance, _groundLayers, QueryTriggerInteraction.Ignore);
 
-            // Visualize the raycasts
-            Debug.DrawRay(frontRayPos.position, Vector3.down * totalRaycastDistance, frontGrounded ? Color.green : Color.red);
-            Debug.DrawRay(centerRayPos.position, Vector3.down * totalRaycastDistance, centerGrounded ? Color.green : Color.red);
-            Debug.DrawRay(StepCheckPos.position, Vector3.down * totalRaycastDistance, isEdgeAStep ? Color.green : Color.red);
-
-
             Vector3 frontPoint = frontHit.point;
             Vector3 centerPoint = centerHit.point;
             Vector3 stepCheckPoint = stepHit.point;
             Vector3 missingPoint = new Vector3(frontPoint.x, centerPoint.y, frontPoint.z);
 
-            FrontHitViz.transform.position = frontPoint;
-            CenterHitViz.transform.position = centerPoint;
-            MissingVectorViz.transform.position = missingPoint;
-            StepCheckViz.transform.position = stepCheckPoint;
+            if (DebugManager.Instance.DisplayEdgeDetectionVisual)
+            {
+                FrontHitViz.SetActive(true);
+                CenterHitViz.SetActive(true);
+                MissingVectorViz.SetActive(true);
+                StepCheckViz.SetActive(true);
+
+                // Visualize the raycasts
+                Debug.DrawRay(frontRayPos.position, Vector3.down * totalRaycastDistance, frontGrounded ? Color.green : Color.red);
+                Debug.DrawRay(centerRayPos.position, Vector3.down * totalRaycastDistance, centerGrounded ? Color.green : Color.red);
+                Debug.DrawRay(StepCheckPos.position, Vector3.down * totalRaycastDistance, isEdgeAStep ? Color.green : Color.red);
+
+                FrontHitViz.transform.position = frontPoint;
+                CenterHitViz.transform.position = centerPoint;
+                MissingVectorViz.transform.position = missingPoint;
+                StepCheckViz.transform.position = stepCheckPoint;
 
 
-            Debug.DrawLine(missingPoint, centerPoint, Color.yellow);
-            Debug.DrawLine(missingPoint, frontPoint, Color.yellow);
+                Debug.DrawLine(missingPoint, centerPoint, Color.yellow);
+                Debug.DrawLine(missingPoint, frontPoint, Color.yellow);
+
+            }
+            else
+            {
+                FrontHitViz.SetActive(false);
+                CenterHitViz.SetActive(false);
+                MissingVectorViz.SetActive(false);
+                StepCheckViz.SetActive(false);
+            }
+
 
             Vector3 frontVector = frontPoint - centerPoint;
             Vector3 missingVector = missingPoint - centerPoint;
@@ -401,22 +402,24 @@ namespace Spaderdabomb.PlayerController
 
             TurnAngle = sign * Vector3.Angle(transform.forward, camForwardProjectedXZ);
 
-            Color parallelogramColor = (sign >= 0) ? PositiveCrossColor : NegativeCrossColor;
+            //Color parallelogramColor = (sign >= 0) ? PositiveCrossColor : NegativeCrossColor;
 
-            CameraForwardViz.position = camForwardProjectedXZ;
-            CharacterForwardViz.position = transform.forward;
-            CrossProductViz.position = crossProduct;
-            CharacterUpViz.position = transform.up;
-            NegCharacterUpViz.position = -transform.up;
+            //CameraForwardViz.position = camForwardProjectedXZ;
+            //CharacterForwardViz.position = transform.forward;
+            //CrossProductViz.position = crossProduct;
+            //CharacterUpViz.position = transform.up;
+            //NegCharacterUpViz.position = -transform.up;
 
-            VisualizeVector(CameraForwardViz.gameObject.GetComponent<LineRenderer>(), OriginViz.position, camForwardProjectedXZ, Color.blue);
-            VisualizeVector(CharacterForwardViz.gameObject.GetComponent<LineRenderer>(), OriginViz.position, transform.forward, Color.green);
-            VisualizeVector(CrossProductViz.gameObject.GetComponent<LineRenderer>(), OriginViz.position, crossProduct, Color.red);
+            //VisualizeVector(CameraForwardViz.gameObject.GetComponent<LineRenderer>(), OriginViz.position, camForwardProjectedXZ, Color.blue);
+            //VisualizeVector(CharacterForwardViz.gameObject.GetComponent<LineRenderer>(), OriginViz.position, transform.forward, Color.green);
+            //VisualizeVector(CrossProductViz.gameObject.GetComponent<LineRenderer>(), OriginViz.position, crossProduct, Color.red);
 
-            // Visualize parallelogram
-            DrawParallelogram(OriginViz.position, transform.forward, camForwardProjectedXZ, parallelogramColor, sign, PlayerCam_ParallelogramViz: PlayerCam_ParallelogramViz);
-            DrawParallelogram(OriginViz.position, crossProduct, transform.forward, parallelogramColor, sign, CrossPlayer_ParallelogramViz: CrossPlayer_ParallelogramViz);
-            DrawParallelogram(OriginViz.position, crossProduct, camForwardProjectedXZ, parallelogramColor, sign, CrossCam_ParallelogramViz: CrossCam_ParallelogramViz);
+            //// Visualize parallelogram
+            //DrawParallelogram(OriginViz.position, transform.forward, camForwardProjectedXZ, parallelogramColor, sign, PlayerCam_ParallelogramViz: PlayerCam_ParallelogramViz);
+            //DrawParallelogram(OriginViz.position, crossProduct, transform.forward, parallelogramColor, sign, CrossPlayer_ParallelogramViz: CrossPlayer_ParallelogramViz);
+            //DrawParallelogram(OriginViz.position, crossProduct, camForwardProjectedXZ, parallelogramColor, sign, CrossCam_ParallelogramViz: CrossCam_ParallelogramViz);
+
+            DebugManager.Instance.GetCrossProductData(sign, camForwardProjectedXZ, crossProduct, transform.forward, transform.up);
         }
 
         private void RotatePlayerToTarget()
@@ -501,79 +504,6 @@ namespace Spaderdabomb.PlayerController
         #endregion
 
         #region Visual Helpers
-        void VisualizeVector(LineRenderer lr, Vector3 origin, Vector3 direction, Color color)
-        {
-            lr.startColor = color;
-            lr.endColor = color;
-            lr.SetPosition(0, origin);
-            lr.SetPosition(1, origin + direction);
-            lr.startWidth = .03f;
-            lr.endWidth = .03f;
-        }
-        void DrawParallelogram(Vector3 origin, Vector3 vecA, Vector3 vecB, Color parallelogramColor, float sign, GameObject PlayerCam_ParallelogramViz = null, GameObject CrossPlayer_ParallelogramViz = null, GameObject CrossCam_ParallelogramViz = null)
-        {
-            // Define the four corners of the parallelogram
-            Vector3[] vertices = new Vector3[4];
-            vertices[0] = origin;
-            vertices[1] = origin + vecA;
-            vertices[2] = origin + vecA + vecB;
-            vertices[3] = origin + vecB;
-
-            // Create the parallelogram mesh
-            Mesh mesh = new Mesh();
-            mesh.vertices = vertices;
-
-            int[] triangles;
-            if(sign >= 0)
-            {
-                // Original winding order
-                triangles = new int[6] { 0, 1, 2, 0, 2, 3 };
-            }
-            else
-            {
-                //Reverse the winding order
-                triangles = new int[6] { 0, 2, 1, 0, 3, 2 };
-            }
-            mesh.triangles = triangles;
-
-            mesh.RecalculateNormals();
-
-            GameObject targetParallelogramViz = null;
-
-            if (CrossCam_ParallelogramViz != null)
-                targetParallelogramViz = CrossCam_ParallelogramViz;
-            else if (CrossPlayer_ParallelogramViz != null)
-                targetParallelogramViz = CrossPlayer_ParallelogramViz;
-            else
-                targetParallelogramViz = PlayerCam_ParallelogramViz;
-
-            if (targetParallelogramViz == null)
-            {
-                Debug.LogError("No ParallelogramViz GameObject assigned.");
-                return;
-            }
-
-            // Update or add MeshFilter and MeshRenderer
-            MeshFilter mf = targetParallelogramViz.GetComponent<MeshFilter>();
-            if (mf == null)
-            { 
-                mf = targetParallelogramViz.AddComponent<MeshFilter>(); 
-            }
-
-            mf.mesh = mesh;
-
-            MeshRenderer mr = targetParallelogramViz.GetComponent<MeshRenderer>();
-            if (mr == null)
-                mr = targetParallelogramViz.AddComponent<MeshRenderer>();
-
-            // Set material and color
-            if (mr.material == null)
-            {
-                mr.material = new Material(Shader.Find("Standard"));
-            }
-            
-            mr.material.color = parallelogramColor;
-        }
 
         private void OnDrawGizmosSelected()
         {
